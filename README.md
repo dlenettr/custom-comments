@@ -78,6 +78,11 @@ order="date"          : Sıralama kriteri ( date - Tarih, postid - Makale ID'si,
 sort="desc"			  : Sıralama metodu ( asc: Artan, desc: Azalan )
 ~~~
 
+Örnek kod :
+~~~
+{comments users="yes" news="205" cache="no" approve="yes" template="last_comm" from="0" limit="10" order="date" sort="desc"}
+~~~
+
 Tarihçe
 -----------------------
 * 10.01.2015 (v1.0)
