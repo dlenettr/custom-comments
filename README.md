@@ -48,6 +48,7 @@ Yorum Bilgileri :
 {date}        - Tarih ( {date=Format} destekleniyor )
 {text}        - Yorum metni HTML olarak
 {text-prev}   - Yorum metni yazı olarak ilk 100 karakter
+{comm-link}   - Yorum URL'si
 ~~~
 Kontrol tagları :
 ---
@@ -68,7 +69,11 @@ users="yes"           : Sadece kayıtlı kullanıcıların yaptığı yorumlar (
 cache="yes"           : Önbellekleme kullan ( Varsayılan: no )
 id="1-100,5"          : Yorum ID'leri 1-100 arasında ve 5 olanlar ( Tek yorum için de girilebilir id="10" )
 news="1,2,3,4-10"     : Makale ID'leri 1-10 arasında olanlar yorumlar ( Tek makale için de girilebilir: news="205" )
+category="1-20"       : Sadece kategori ID'leri 1-20 arasında olan makalelere yapılan yorumları listeler ( news, id parametreleri gibi kullanılabilir )
+not-category="1,2,3"  : Sadece kategori ID'leri 1,2,3 dışında olan makalelere yapılan yorumları listeler ( news, id parametreleri gibi kullanılabilir )
 author="MaRZoCHi"     : Sadece o kullanıcıya ait yorumlar
+author="_THIS_"       : Kullanıcı profil sayfasında, sadece o kullanıcıya ait yorumlar
+author="_CURRENT_"    : Giriş yapmış olan kullanıcıya ait yorumlar
 approve="yes"         : Sadece onaylanmış yorumar ( no: onay bekleyen, kullanılmazsa: hepsi )
 template="last_comm"  : Yorum gösterimi için şablon dosyası
 days="3"			  : Son 3 gün içinde yazılan yorumlar
@@ -78,14 +83,37 @@ order="date"          : Sıralama kriteri ( date - Tarih, postid - Makale ID'si,
 sort="desc"			  : Sıralama metodu ( asc: Artan, desc: Azalan )
 ~~~
 
-Örnek kod :
+Örnek kodlar :
 ~~~
 {comments users="yes" news="205" cache="no" approve="yes" template="last_comm" from="0" limit="10" order="date" sort="desc"}
+{comments category="1-20" author="_THIS_" cache="no" approve="yes" template="last_comm" from="0" limit="10" order="date" sort="desc"}
+{comments not-category="5" author="_CURRENT_" cache="yes" approve="yes" template="last_comm" from="0" limit="5" order="postid" sort="asc"}
 ~~~
 
 Kurulum
 ---
-1) Aç: index.php
+1) Aç: index.php ( DLE 10.3 ve öncesi için )
+   Aç: engine/modules/main.php ( DLE 10.4 ve sonrası için)
+
+Her yerde çalışması için ( Kullanıcı profil sayfasında )
+---
+Bul :
+~~~
+echo $tpl->result['main'];
+~~~
+
+Üstüne Ekle :
+~~~
+// Custom comments - start
+if ( stripos( $tpl->result['main'], "{comments" ) !== false ) {
+	include ENGINE_DIR . "/modules/custom.comments.php";
+	$tpl->result['main'] = preg_replace_callback ( "#\\{comments(.+?)\\}#i", "custom_comments", $tpl->result['main'] );
+}
+// Custom comments - end
+~~~
+
+Sadece main.tpl ve ilk include edilen .tpl dosyalarında çalışması için
+---
 Bul :
 ~~~
 $config['http_home_url'] = explode ( "index.php", strtolower ( $_SERVER['PHP_SELF'] ) );
@@ -115,8 +143,23 @@ if ( stripos( $tpl->copy_template, "{comments" ) !== false ) {
 .last-comment .info i { color: #666; float: right; margin-right: 5px; }
 ~~~
 
+Değişiklikler
+-----------------------
+ Version 1.1
+ ---
+  + İlave makale bilgilerini çekme özelliği eklendi
+     {news-read}   : Makalenin okunma sayısı
+     {news-rating} : Makalenin değerlendirmesi
+  * Makale başlıklarından slash hatası giderildi
+  + Hataya sebep olan bazı parametreler için öntanımlı değerler girildi
+  + Kullanıcı profili sayfasında o kullanıcıya ait yorumların gösterilmesi için _THIS_ değişkeni eklendi.
+  + Mevcut kullanıcıya ait yorumların gösterilmesi için _CURRENT_ değişkeni eklendi.
+  + category ve not-category parametreleri eklendi.
+  + Yorum gösterimi için kullanıcı grubuna ait izin kontrolü eklendi.
+
 Tarihçe
 -----------------------
+* 04.02.2015 (v1.1)
 * 10.01.2015 (v1.0)
 
 [Mehmet Hanoğlu]:https://github.com/marzochi
