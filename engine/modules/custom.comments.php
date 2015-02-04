@@ -1,7 +1,7 @@
 <?php
 /*
 =====================================================
- MWS Custom Comments v1.0 - Mehmet Hanoğlu
+ MWS Custom Comments v1.1 - Mehmet Hanoğlu
 -----------------------------------------------------
  http://dle.net.tr/ -  Copyright (c) 2015
 -----------------------------------------------------
@@ -18,13 +18,15 @@ if ( ! defined( 'DATALIFEENGINE' ) ) {
 $comm_conf = array(
 	'sel_user_info' => "1",		// Get user info
 	'sel_news_info' => "1",		// Get news info
+	'sel_extra_info' => "1",
 	'prev_text_len' => 100,		// Preview text length
 );
 
 if ( $comm_conf['sel_news_info'] ) {
 
-	function comm_fulllink( $id, $category, $alt_name, $date ) {
+	function comm_fulllink( $id, $category, $alt_name, $date, $comm_id = 0 ) {
 		global $config;
+		$comm_link = ( $comm_id != 0 ) ? "#comment-id-" . $comm_id : "";
 		if ( $config['allow_alt_url'] ) {
 			if ( $config['seo_type'] == 1 OR $config['seo_type'] == 2 ) {
 				if ( $category and $config['seo_type'] == 2 ) {
@@ -38,7 +40,7 @@ if ( $comm_conf['sel_news_info'] ) {
 		} else {
 			$full_link = $config['http_home_url'] . "index.php?newsid=" . $id;
 		}
-		return $full_link;
+		return $full_link . $comm_link;
 	}
 
 	function comm_title( $count, $title ) {
@@ -47,13 +49,13 @@ if ( $comm_conf['sel_news_info'] ) {
 			$title = dle_substr( $title, 0, $count, $config['charset'] );
 			if ( ($temp_dmax = dle_strrpos( $title, ' ', $config['charset'] )) ) $title = dle_substr( $title, 0, $temp_dmax, $config['charset'] );
 		}
-		return $title;
+		return strip_tags( stripslashes( $title ) );
 	}
 }
 
 
 function custom_comments( $matches = array() ) {
-	global $db, $_TIME, $config, $lang, $user_group, $comm_conf;
+	global $db, $_TIME, $config, $lang, $user_group, $comm_conf, $member_id;
 
 	if ( ! count( $matches ) ) return "";
 	$yes_no_map = array( "yes" => "1", "no" => "0" );
@@ -64,14 +66,20 @@ function custom_comments( $matches = array() ) {
 
 	if ( preg_match( "#template=['\"](.+?)['\"]#i", $param_str, $match ) ) {
 		$comm_tpl = trim( $match[1] );
-	} else return "";
+	} else return "Error: <b>template</b> parameter missing.";
 
 	if ( preg_match( "#approve=['\"](.+?)['\"]#i", $param_str, $match ) ) {
 		$where[] = "c.approve='" . $yes_no_map[ $match[1] ] . "'";
 	}
 	if ( preg_match( "#author=['\"](.+?)['\"]#i", $param_str, $match ) ) {
-		$where[] = "c.autor='" . $db->safesql( trim( $match[1] ) ) . "'";
-	}
+		$author = $db->safesql( trim( $match[1] ) );
+		if ( $author == "_THIS_" && $_REQUEST['subaction'] == "userinfo" ) {
+			$author = $db->safesql( $_REQUEST['user'] );
+		} else if ( $author == "_CURRENT_" && isset( $member_id ) ) {
+			$author = $db->safesql( $member_id['name'] );
+		}
+		$where[] = "c.autor='" . $author . "'";
+	} else return "Error: <b>author</b> parameter missing.";
 	if ( preg_match( "#users=['\"](.+?)['\"]#i", $param_str, $match ) ) {
 		$where[] = "c.is_register='" . $yes_no_map[ $match[1] ] . "'";
 	}
@@ -87,11 +95,11 @@ function custom_comments( $matches = array() ) {
 		foreach ( $match[1] as $value ) {
 			if ( count( explode( '-', $value ) ) == 2 ) {
 				$value = explode( '-', $value );
-				$where_id[] = "id >= '" . intval( $value[0] ) . "' AND id <= '" . intval( $value[1] ) . "'";
+				$where_id[] = "c.id >= '" . intval( $value[0] ) . "' AND c.id <= '" . intval( $value[1] ) . "'";
 			} else $temp_array[] = intval($value);
 		}
 		if ( count( $temp_array ) ) {
-			$where_id[] = "id IN ('" . implode( "','", $temp_array ) . "')";
+			$where_id[] = "c.id IN ('" . implode( "','", $temp_array ) . "')";
 		}
 		if ( count( $where_id ) ) { 
 			$custom_id = implode( ' OR ', $where_id );
@@ -132,16 +140,59 @@ function custom_comments( $matches = array() ) {
 	if ( preg_match( "#order=['\"](.+?)['\"]#i", $param_str, $match ) ) {
 		$allowed_order = array ( 'postid' => 'post_id', 'date' => 'date', 'author' => 'autor', 'rand' => 'RAND()' );
 		if ( $allowed_order[ $match[1] ] ) $comm_order = $allowed_order[ $match[1] ];
-	}
+	} else { $comm_order = "date"; }
 	if ( preg_match( "#sort=['\"](.+?)['\"]#i", $param_str, $match ) ) {
 		$allowed_sort = array ( 'asc' => 'ASC', 'desc' => 'DESC' );
 		if ( $allowed_sort[ $match[1] ] ) $comm_sort = $allowed_sort[ $match[1] ];
-	}
+	} else { $comm_sort = "desc"; }
 
 	if ( preg_match( "#cache=['\"](.+?)['\"]#i", $param_str, $match ) ) {
 		$comm_cache = $yes_no_map[ $match[1] ];
 	} else {
 		$comm_cache = "0";
+	}
+
+	$allow_list = explode( ',', $user_group[$member_id['user_group']]['allow_cats'] );
+	if ( $allow_list[0] != "all" AND !$user_group[$member_id['user_group']]['allow_short'] ) {
+		if ( $config['allow_multi_category'] ) {
+			$where[] = "p.category REGEXP '[[:<:]](" . implode( '|', $allow_list ) . ")[[:>:]]'";
+		} else {
+			$where[] = "p.category IN ('" . implode( "','", $allow_list ) . "')";
+		}
+	}
+	if ( preg_match( "#category=['\"](.+?)['\"]#i", $param_str, $match ) ) {
+		$temp_array = array();
+		$match[1] = explode( ',', $match[1] );
+		foreach ( $match[1] as $value ) {
+			$_tmp = explode( '-', $value );
+			if ( count( $_tmp ) == 2 ) $temp_array[] = get_mass_cats( $value );
+			else $temp_array[] = intval( $value );
+		}
+		$temp_array = implode( ',', $temp_array );
+		$custom_category = $db->safesql( trim( str_replace( ',', '|', $temp_array ) ) );
+		if ( $config['allow_multi_category'] ) {
+			$where[] = "p.category REGEXP '[[:<:]](" . $custom_category . ")[[:>:]]'";
+		} else {
+			$custom_category = str_replace( "|", "','", $custom_category );
+			$where[] = "p.category IN ('" . $custom_category . "')";
+		}
+	}
+	if ( preg_match( "#not-category=['\"](.+?)['\"]#i", $param_str, $match ) ) {
+		$temp_array = array();
+		$match[1] = explode( ',', $match[1] );
+		foreach( $match[1] as $value ) {
+			$_tmp = explode( '-', $value );
+			if ( count( $_tmp ) == 2 ) $temp_array[] = get_mass_cats( $value );
+			else $temp_array[] = intval( $value );
+		}
+		$temp_array = implode(',', $temp_array);
+		$custom_category = $db->safesql( trim(str_replace( ',', '|', $temp_array )) );
+		if ( $config['allow_multi_category'] ) {
+			$where[] = "p.category NOT REGEXP '[[:<:]](" . $custom_category . ")[[:>:]]'";
+		} else {
+			$custom_category = str_replace( "|", "','", $custom_category );
+			$where[] = "p.category NOT IN ('" . $custom_category . "')";
+		}
 	}
 
 	if ( $comm_conf['sel_user_info'] ) {
@@ -154,9 +205,14 @@ function custom_comments( $matches = array() ) {
 	} else {
 		$p_select = ""; $p_from = "";
 	}
+	if ( $comm_conf['sel_extra_info'] ) {
+		$e_select = ", e.news_read, e.rating, e.vote_num"; $e_from = " LEFT JOIN " . PREFIX . "_post_extras e ON ( c.post_id = e.news_id )";
+	} else {
+		$e_select = ""; $e_from = "";
+	}
 
 	$comm_yes = false;
-	$comm_sql = "SELECT c.*{$u_select}{$p_select} FROM " . PREFIX . "_comments c{$u_from}{$p_from} WHERE " . implode( ' AND ', $where ) . " ORDER BY {$comm_order} {$comm_sort} LIMIT {$comm_from},{$comm_limit}";
+	$comm_sql = "SELECT c.*{$u_select}{$p_select}{$e_select} FROM " . PREFIX . "_comments c{$u_from}{$p_from}{$e_from} WHERE " . implode( ' AND ', $where ) . " ORDER BY {$comm_order} {$comm_sort} LIMIT {$comm_from},{$comm_limit}";
 	$comm_que = $db->query( $comm_sql );
 
 	if ( $comm_cache ) {
@@ -206,7 +262,12 @@ function custom_comments( $matches = array() ) {
 				if ( preg_match( "#\\{news-title limit=['\"](.+?)['\"]\\}#i", $tpl->copy_template, $matches ) ) { $count = intval( $matches[1] ); $tpl->set( $matches[0], comm_title( $count, $comm_row['title'] ) ); }
 				else $tpl->set( '{news-title}', strip_tags( stripslashes( $comm_row['title'] ) ) );
 				$tpl->set( '{news-link}', comm_fulllink( $comm_row['post_id'], $comm_row['category'], $comm_row['alt_name'], $comm_row['pdate'] ) );
+				$tpl->set( '{comm-link}', comm_fulllink( $comm_row['post_id'], $comm_row['category'], $comm_row['alt_name'], $comm_row['pdate'], $comm_row['id'] ) );
 				$tpl->set( '{news-cat}', get_categories( $comm_row['category'] ) );
+			}
+			if ( $comm_conf['sel_extra_info'] ) {
+				$tpl->set( '{news-read}', $comm_row['news_read'] );
+				$tpl->set( '{news-rating}', round( ( floatval( $comm_row['rating'] ) / floatval( $comm_row['vote_num'] ) ), 1 ) );
 			}
 			$tpl->set( "{text-preview}", dle_substr( strip_tags( stripslashes( $comm_row['text'] ) ), 0, $comm_conf['prev_text_len'], $config['charset'] ) );
 			$tpl->set( "{author-id}", $comm_row['user_id'] );
