@@ -79,7 +79,7 @@ function custom_comments( $matches = array() ) {
 			$author = $db->safesql( $member_id['name'] );
 		}
 		$where[] = "c.autor='" . $author . "'";
-	} else return "Error: <b>author</b> parameter missing.";
+	}
 	if ( preg_match( "#users=['\"](.+?)['\"]#i", $param_str, $match ) ) {
 		$where[] = "c.is_register='" . $yes_no_map[ $match[1] ] . "'";
 	}
