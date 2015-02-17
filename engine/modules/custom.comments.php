@@ -285,7 +285,7 @@ function custom_comments( $matches = array() ) {
 	    	$tpl->compile( "content" );
 		}
 
-		$tpl->result['content'] = str_replace( "{THEME}", $config['http_home_url'] . "/templates/" . $config['skin'], $tpl->result['content'] );
+		$tpl->result['content'] = str_replace( "{THEME}", $config['http_home_url'] . "templates/" . $config['skin'], $tpl->result['content'] );
 
 		if ( $comm_cache ) {
 			create_cache( "comm_custom", $tpl->result['content'], $comm_cacheid, true );
