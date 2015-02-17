@@ -1,7 +1,7 @@
 <?php
 /*
 =====================================================
- MWS Custom Comments v1.1 - Mehmet Hanoğlu
+ MWS Custom Comments v1.2 - Mehmet Hanoğlu
 -----------------------------------------------------
  http://dle.net.tr/ -  Copyright (c) 2015
 -----------------------------------------------------
@@ -18,7 +18,7 @@ if ( ! defined( 'DATALIFEENGINE' ) ) {
 $comm_conf = array(
 	'sel_user_info' => "1",		// Get user info
 	'sel_news_info' => "1",		// Get news info
-	'sel_extra_info' => "1",
+	'sel_extra_info' => "1",	// Get extra news info
 	'prev_text_len' => 100,		// Preview text length
 );
 
