@@ -1,7 +1,7 @@
 <?php
 /*
 =====================================================
- MWS Custom Comments v1.2 - Mehmet Hanoğlu
+ MWS Custom Comments v1.3 - Mehmet Hanoğlu
 -----------------------------------------------------
  http://dle.net.tr/ -  Copyright (c) 2015
 -----------------------------------------------------
@@ -101,7 +101,7 @@ function custom_comments( $matches = array() ) {
 		if ( count( $temp_array ) ) {
 			$where_id[] = "c.id IN ('" . implode( "','", $temp_array ) . "')";
 		}
-		if ( count( $where_id ) ) { 
+		if ( count( $where_id ) ) {
 			$custom_id = implode( ' OR ', $where_id );
 			$where[] = $custom_id;
 		}
@@ -120,7 +120,7 @@ function custom_comments( $matches = array() ) {
 		if ( count( $temp_array ) ) {
 			$where_id[] = "c.post_id IN ('" . implode( "','", $temp_array ) . "')";
 		}
-		if ( count( $where_id ) ) { 
+		if ( count( $where_id ) ) {
 			$custom_id = implode( ' OR ', $where_id );
 			$where[] = $custom_id;
 		}
@@ -195,6 +195,12 @@ function custom_comments( $matches = array() ) {
 		}
 	}
 
+	if ( preg_match( "#not=['\"](.+?)['\"]#i", $param_str, $match ) ) {
+		$not_found = $db->safesql( $match[1] );
+	} else {
+		$not_found = "";
+	}
+
 	if ( $comm_conf['sel_user_info'] ) {
 		$u_select = ", u.foto, u.user_group, u.comm_num, u.news_num"; $u_from = " LEFT JOIN " . PREFIX . "_users u ON ( c.user_id = u.user_id )";
 	} else {
@@ -211,8 +217,10 @@ function custom_comments( $matches = array() ) {
 		$e_select = ""; $e_from = "";
 	}
 
+	$_WHERE = ( count( $where ) > 0 ) ? " WHERE " . implode( ' AND ', $where ) : "";
+
 	$comm_yes = false;
-	$comm_sql = "SELECT c.*{$u_select}{$p_select}{$e_select} FROM " . PREFIX . "_comments c{$u_from}{$p_from}{$e_from} WHERE " . implode( ' AND ', $where ) . " ORDER BY {$comm_order} {$comm_sort} LIMIT {$comm_from},{$comm_limit}";
+	$comm_sql = "SELECT c.*{$u_select}{$p_select}{$e_select} FROM " . PREFIX . "_comments c{$u_from}{$p_from}{$e_from}{$_WHERE} ORDER BY {$comm_order} {$comm_sort} LIMIT {$comm_from},{$comm_limit}";
 	$comm_que = $db->query( $comm_sql );
 
 	if ( $comm_cache ) {
@@ -283,6 +291,10 @@ function custom_comments( $matches = array() ) {
 			$tpl->set( "{id}", $comm_row['id'] );
 
 	    	$tpl->compile( "content" );
+		}
+
+		if ( ! $comm_yes ) {
+			$tpl->result['content'] = $not_found;
 		}
 
 		$tpl->result['content'] = str_replace( "{THEME}", $config['http_home_url'] . "templates/" . $config['skin'], $tpl->result['content'] );
