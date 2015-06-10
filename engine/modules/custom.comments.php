@@ -255,7 +255,15 @@ function custom_comments( $matches = array() ) {
 				if ( count( explode( "@", $comm_row['foto'] ) ) == 2 ) {
 					$tpl->set( '{author-foto}', 'http://www.gravatar.com/avatar/' . md5( trim( $comm_row['foto'] ) ) . '?s=' . intval( $user_group[$comm_row['user_group']]['max_foto'] ) );
 				} else {
-					if ( $comm_row['foto'] and ( file_exists( ROOT_DIR . "/uploads/fotos/" . $comm_row['foto'] ) ) ) $tpl->set( '{author-foto}', $config['http_home_url'] . "uploads/fotos/" . $comm_row['foto'] );
+					if ( $comm_row['foto'] && $config['version_id'] < "10.5" ) {
+						if ( ( file_exists( ROOT_DIR . "/uploads/fotos/" . $comm_row['foto'] ) ) ) {
+							$tpl->set( '{author-foto}', $config['http_home_url'] . "uploads/fotos/" . $comm_row['foto'] );
+						} else {
+							$tpl->set( '{author-foto}', "{THEME}/dleimages/noavatar.png" );
+						}
+					} else if ( $comm_row['foto'] && $config['version_id'] >= "10.5" ) {
+						$tpl->set( '{author-foto}', $comm_row['foto'] );
+					}
 					else $tpl->set( '{author-foto}', "{THEME}/dleimages/noavatar.png" );
 				}
 				$tpl->set( "{author-colored}", $user_group[ $comm_row['user_group'] ]['group_prefix'] . $comm_row['autor'] . $user_group[ $comm_row['user_group'] ]['group_suffix'] );
