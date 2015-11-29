@@ -1,4 +1,4 @@
-<li class="last-comment">
+<li class="last-comment user_{status}">
 	<div class="foto">
 		<p><a href="{author-url}">{author-colored}</a></p>
 		<img src="{author-foto}" alt="" />
