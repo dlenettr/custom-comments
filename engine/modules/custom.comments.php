@@ -1,7 +1,7 @@
 <?php
 /*
 =====================================================
- MWS Custom Comments v1.3 - Mehmet Hanoğlu
+ MWS Custom Comments v1.4 - Mehmet Hanoğlu
 -----------------------------------------------------
  http://dle.net.tr/ -  Copyright (c) 2015
 -----------------------------------------------------
@@ -47,7 +47,7 @@ if ( $comm_conf['sel_news_info'] ) {
 		global $config;
 		if ( $count AND dle_strlen( $title, $config['charset'] ) > $count ) {
 			$title = dle_substr( $title, 0, $count, $config['charset'] );
-			if ( ($temp_dmax = dle_strrpos( $title, ' ', $config['charset'] )) ) $title = dle_substr( $title, 0, $temp_dmax, $config['charset'] );
+			if ( ( $temp_dmax = dle_strrpos( $title, ' ', $config['charset'] ) ) ) $title = dle_substr( $title, 0, $temp_dmax, $config['charset'] );
 		}
 		return strip_tags( stripslashes( $title ) );
 	}
@@ -202,7 +202,7 @@ function custom_comments( $matches = array() ) {
 	}
 
 	if ( $comm_conf['sel_user_info'] ) {
-		$u_select = ", u.foto, u.user_group, u.comm_num, u.news_num"; $u_from = " LEFT JOIN " . PREFIX . "_users u ON ( c.user_id = u.user_id )";
+		$u_select = ", u.foto, u.user_group, u.comm_num, u.news_num, u.lastdate"; $u_from = " LEFT JOIN " . PREFIX . "_users u ON ( c.user_id = u.user_id )";
 	} else {
 		$u_select = ""; $u_from = "";
 	}
@@ -233,6 +233,7 @@ function custom_comments( $matches = array() ) {
 		$tpl->dir = TEMPLATE_DIR;
 		$tpl->load_template( $comm_tpl . '.tpl' );
 
+		$config['http_home_url'] .= ( substr( $config['http_home_url'], -1 ) != "/" ) ? "/" : "";
 		while( $comm_row = $db->get_row( $comm_que ) ) {
 			$comm_yes = true;
 
@@ -287,12 +288,22 @@ function custom_comments( $matches = array() ) {
 			}
 			$tpl->set( "{text-preview}", dle_substr( strip_tags( stripslashes( $comm_row['text'] ) ), 0, $comm_conf['prev_text_len'], $config['charset'] ) );
 			$tpl->set( "{author-id}", $comm_row['user_id'] );
-			$tpl->set( "{author-url}", ( $config['allow_alt_url'] ) ? $config['http_home_url'] . "user/" . urlencode( $comm_row['autor'] ) : $config['http_home_url'] . "index.php?subaction=userinfo&amp;user=" . urlencode( $comm_row['autor'] ) );
 			$tpl->set( "{author}", $comm_row['autor'] );
 			$tpl->set( "{approve}", $comm_row['approve'] );
-			if ( $comm_row['is_register'] ) { $tpl->set( "[registered]", "" ); $tpl->set( "[/registered]", "" ); }
-			else { $tpl->set_block( "'\\[registered\\](.*?)\\[/registered\\]'si", "" ); }
+			if ( $comm_row['is_register'] ) {
+				$tpl->set( "[registered]", "" );
+				$tpl->set( "[/registered]", "" );
+				$tpl->set( "{author-url}", ( $config['allow_alt_url'] ) ? $config['http_home_url'] . "user/" . urlencode( $comm_row['autor'] ) : $config['http_home_url'] . "index.php?subaction=userinfo&amp;user=" . urlencode( $comm_row['autor'] ) );
+			} else {
+				$tpl->set_block( "'\\[registered\\](.*?)\\[/registered\\]'si", "" );
+				$tpl->set( "{author-url}", "#" );
+			}
 			$tpl->set( "{is_register}", $comm_row['is_register'] );
+			if ( $comm_row['lastdate'] + 1200 > $_TIME ) {
+				$tpl->set( "{status}", "online" );
+			} else {
+				$tpl->set( "{status}", "offline" );
+			}
 			$tpl->set( "{email}", $comm_row['email'] );
 			$tpl->set( "{news-id}", $comm_row['post_id'] );
 			$tpl->set( "{ip}", $comm_row['ip'] );
