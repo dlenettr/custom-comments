@@ -284,7 +284,11 @@ function custom_comments( $matches = array() ) {
 			}
 			if ( $comm_conf['sel_extra_info'] ) {
 				$tpl->set( '{news-read}', $comm_row['news_read'] );
-				$tpl->set( '{news-rating}', round( ( floatval( $comm_row['rating'] ) / floatval( $comm_row['vote_num'] ) ), 1 ) );
+				if ( $comm_row['vote_num'] != "0" ) {
+					$tpl->set( '{news-rating}', round( ( floatval( $comm_row['rating'] ) / floatval( $comm_row['vote_num'] ) ), 1 ) );
+				} else {
+					$tpl->set( '{news-rating}', "0" );
+				}
 			}
 			$tpl->set( "{text-preview}", dle_substr( strip_tags( stripslashes( $comm_row['text'] ) ), 0, $comm_conf['prev_text_len'], $config['charset'] ) );
 			$tpl->set( "{author-id}", $comm_row['user_id'] );
