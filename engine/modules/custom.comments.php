@@ -249,8 +249,6 @@ function custom_comments( $matches = array() ) {
 			} else {
 				$tpl->set( '{date}', $comm_row['date'] );
 			}
-			$news_date = $comm_row['date'];
-			$tpl->copy_template = preg_replace_callback( "#\{date=(.+?)\}#i", "formdate", $tpl->copy_template );
 
 			if ( $comm_conf['sel_user_info'] ) {
 				if ( count( explode( "@", $comm_row['foto'] ) ) == 2 ) {
@@ -314,6 +312,8 @@ function custom_comments( $matches = array() ) {
 			$tpl->set( "{id}", $comm_row['id'] );
 
 	    	$tpl->compile( "content" );
+
+			$tpl->result['content'] = preg_replace_callback( "#\{date=(.+?)\}#i", function( $match ) use ( $comm_row ) { return langdate( $match[1], strtotime( $comm_row['date'] ), $servertime = false, $custom = false ); }, $tpl->result['content'] );
 		}
 
 		if ( ! $comm_yes ) {
