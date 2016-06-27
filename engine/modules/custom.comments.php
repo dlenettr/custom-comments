@@ -54,7 +54,7 @@ if ( $comm_conf['sel_news_info'] ) {
 }
 
 
-function custom_comments( $matches = array() ) {
+function custom_comments_module( $matches = array() ) {
 	global $db, $_TIME, $config, $lang, $user_group, $comm_conf, $member_id;
 
 	if ( ! count( $matches ) ) return "";
